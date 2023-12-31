@@ -1,0 +1,54 @@
+{% extends 'chat/base/base.html' %}
+
+{% block content %}
+<div class="card-body contacts_body">
+    <ul class="contacts">
+        <!-- your firens -->
+        <li class="active">
+            <div id="responseDiv"></div>
+            <h4 class="bg-dark text-secondary lead">Your friends</h4>
+            {% for friend in friends %}
+                {% for users in friend.related_friends.all %}
+                    <div class="d-flex bd-highlight">
+                        <div class="img_cont">
+                            <img src="{{ users.photo.url }}" class="rounded-circle user_img">
+                            <span class="online_icon"></span>
+                        </div>
+                        <div class="user_info">
+                            <span>{{ users.username }}</span>
+                            <p>{{ user.username }} online </p>
+                            <a href="{% url 'chat_friend' users.id %}" class="btn btn-primary">Chat Friend</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+        </li>
+        <!-- end -->
+        <li class="active">
+            <div id="responseDiv"></div>
+            <h4 class="bg-dark text-secondary lead">Add new friends</h4>
+            {% for user in all_users %}
+            <div class="d-flex bd-highlight">
+                <div class="img_cont">
+                    <img src="{{ user.photo.url }}" class="rounded-circle user_img">
+                    <span class="online_icon"></span>
+                </div>
+                <div class="user_info">
+                    <span>{{ user.username }}</span>
+                    {% if user.is_online %}
+                        <p> online </p>
+                    {% else %}
+                        <p> offline </p>
+                    {% endif %}
+                    <form method="post" action="{% url 'add_friend' user.id %}" class="friendform">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">Add Friend</button>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+        </li>
+    </ul>
+</div>
+
+{% endblock %}

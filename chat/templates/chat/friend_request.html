@@ -1,0 +1,28 @@
+{% extends 'chat/base/base.html' %}
+
+{% block content %}
+
+{% if user.is_authenticated %}
+    
+    {% if user.friend_requests_received.all %}
+        <div class="friend-requests">
+            <h2>Friend Requests</h2>
+            {% for friend_request in user.friend_requests_received.all %}
+                {% if friend_request.status == 'pending' %}
+                    <div class="friend-request">
+                        <p>{{ friend_request.from_user.username }} wants to be your friend</p>
+                        <a href="{% url 'accept_friend_request' friend_request.id %}" class="btn btn-primary">Accept</a>
+                        <a href="{% url 'reject_friend_request' friend_request.id %}" class="btn btn-danger">Reject</a>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No friend requests</p>
+    {% endif %}
+{% else %}
+        <p>Login to manage your friends.</p>
+
+{% endif %}
+
+{% endblock %}

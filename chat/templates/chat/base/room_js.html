@@ -1,0 +1,244 @@
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+
+    const room_name = "{{ room.name }}";
+    const chatSocket = new WebSocket(
+        `ws://${window.location.host}/ws/chat/${room_name}/`
+    );
+
+    chatSocket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        const messageInput = document.querySelector('#chatMessageInput');
+
+
+        // Check the type of the message
+        switch (data.type) {
+            case "chat_message":
+                // Append the received message to the input area
+                messageInput.value += data.user + ": " + data.message + "\n";
+                break;
+            default:
+                console.error("Unknown message type!");
+                break;
+        }
+
+        // Scroll to the bottom of the input area to show new messages
+        messageInput.scrollTop = messageInput.scrollHeight;
+
+        // Log the received message to the console
+        console.log('Received message:', data.message);
+    };
+
+    document.querySelector('#messageForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const messageInput = document.querySelector('#chatMessageInput');
+        const message = messageInput.value;
+
+        // Send the message to the server
+        chatSocket.send(JSON.stringify({
+            'type': 'chat_message', // Add the message type
+            'message': message
+        }));
+
+        // Clear the message input field
+        messageInput.value = '';
+
+        // Focus on the input area after sending a message
+        messageInput.focus();
+
+		
+    });
+
+
+	chatSocket.onmessage = function (e) {
+    const data = JSON.parse(e.data);
+    const messageContainer = document.querySelector('#messageContainer');
+
+    // Check the type of the message
+	
+    const currentUserId = "{{ request.user.id }}";
+    const currentUser = "{{ current_user }}";
+
+
+	switch (data.type) {
+    case "chat_message":
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message');
+
+        // Determine if the message is from the current user
+        const isCurrentUserMessage = data.user === currentUserId;
+        console.log('Data User Type:', typeof data.user);
+        console.log('sthis is the current user ', currentUser)
+        console.log('CurrentUserId Type:', typeof currentUserId);
+
+        // Add classes for styling
+        messageDiv.classList.add(isCurrentUserMessage ? 'sent' : 'received');
+
+        messageDiv.innerHTML = `
+            <div class="message-avatar">
+                <img src="${data.photo_url}" class="user-avatar">
+            </div>
+            <div class="message-content">
+                <div class="message-username ${isCurrentUserMessage ? 'current-user' : 'other-user'}" style="font-weight: bold; font-size: 14px;">
+                    <i class ="bg-danger adust-user">${isCurrentUserMessage ? 'You' : data.user}</i>
+                </div>
+                <div class="message-text">${data.message}</div>
+                <div class="message-timestamp">
+                    ${data.timestamp}
+                </div>
+            </div>
+        `;
+
+        document.getElementById('messageContainer').appendChild(messageDiv);
+        break;
+        
+    default:
+        console.error("Unknown message type!");
+        break;
+}
+
+
+
+    // Scroll to the bottom of the message container to show new messages
+    messageContainer.scrollTop = messageContainer.scrollHeight;
+
+    // Log the received message to the console
+    console.log('Received message:', data.message);
+};
+
+// Function to scroll to the textarea element
+function scrollToTextarea() {
+    const chatContainer = document.getElementById('messageContainer');
+    const messageTextarea = document.getElementById('chatMessageInput');
+
+    if (chatContainer && messageTextarea) {
+        chatContainer.scrollTop = messageTextarea.offsetTop;
+        messageTextarea.focus();
+    }
+}
+
+// Call the function when entering a group or receiving a new message
+// For example, call it after rendering a new message or when joining a group
+scrollToTextarea();
+
+
+// sumbmit with button
+// Add a click event listener to the send button
+document.querySelector('#chatMessageSend').addEventListener('click', function () {
+    const messageInput = document.querySelector('#chatMessageInput');
+    const message = messageInput.value;
+
+    // Send the message to the server
+    chatSocket.send(JSON.stringify({
+        'type': 'chat_message',
+        'message': message
+    }));
+
+    // Clear the message input field
+    messageInput.value = '';
+
+    // Focus on the input area after sending a message
+    messageInput.focus();
+
+    // Scroll the chat container to the bottom
+    const messageContainer = document.querySelector('#messageContainer');
+    messageContainer.scrollTop = messageContainer.scrollHeight;
+});
+
+
+// status
+
+$(document).ready(function () {
+	// const form = $(".friendform");
+	const responseDiv = $("#responseDiv")
+	
+	$(".friendform").on("submit", function (e) {
+		e.preventDefault();
+
+		const form = $(this);
+		
+		$.ajax({
+			type : form.attr("method"),
+			url : form.attr("action"),
+			data: form.serialize(),
+			success: function (data){
+				if(data.success){
+					responseDiv.html(`<div class="alert alert-success">${data.message}</div>`);
+					// var chatroomName = "."; // Extract chatroom name from response
+
+                    // Use the HTML5 History API to change the URL without page reload
+                    history.pushState({}, "", "{% url 'room' room.name %}");
+				}
+
+			},
+			error: function (error) {
+                console.error(error);
+            },
+
+		});
+	});
+
+});
+
+// add friens
+$(document).ready(function () {
+    $(".friendRequestBtn").on("submit", function (e) {
+        e.preventDefault();
+
+        const form = $(this);
+        const userId = form.data("user-id");
+        const responseDiv = $("#responseDiv");
+
+        $.ajax({
+            type: form.attr("method"),
+            url: form.attr("action"),
+            data: form.serialize(),
+            success: function (data) {
+                responseDiv.html(`<div class="alert alert-success">${data.message}</div>`);
+                    // Update the friend-status text
+                    const buttonText = data.pending ? 'Pending' : 'Add Friend';
+                    form.find('.friend-status').text(buttonText);
+                
+            },
+            error: function (error) {
+                console.error(error);
+            },
+        });
+    });
+});
+
+// counting unread messages
+function updateUnreadCount(friendId) {
+        console.log("Updating unread count for friend: " + friendId);
+        $.ajax({
+            url: '{% url "update_unread_messages" %}',
+            method: 'POST',
+            data: {
+                friend_id: friendId,
+                csrfmiddlewaretoken: '{{ csrf_token }}',
+            },
+            success: function (data) {
+                if (data.success) {
+                    // Update the badge count in your template
+                    $('#unread-count-' + friendId).text(data.unread_count);
+                } else {
+                    console.error('Failed to update unread count.');
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('AJAX request failed: ' + status + ', ' + error);
+            },
+        });
+    }
+
+    // Periodically poll for updates (adjust the interval as needed)
+    setInterval(function () {
+        {% for users, current_user_count in arr %}
+            {% if users != request.user %}
+                updateUnreadCount('{{ users.id }}');
+            {% endif %}
+        {% endfor %}
+    }, 5000);  // Poll every 5 seconds (adjust as needed)
+
+
+</script>

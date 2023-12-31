@@ -1,0 +1,239 @@
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+    // Define the user variable using the value from the Django template context
+    var user = "{{ user.username }}";
+
+    function fetchMessages() {
+           
+        $.ajax({
+            url: "{% url 'chat_friend' friend_id=frnd.id %}",
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
+                if (data.success) {
+                    if (data.messages) {
+                        var messageContainer = $("#messageContainer");
+                        var shouldScroll = messageContainer.prop("scrollHeight") - messageContainer.scrollTop() === messageContainer.height();
+
+                        $("#messageContainer").empty();
+
+                        for (let message of data.messages) {
+                            
+							const senderName = message.sender === user ? 'You' : message.sender;
+                            const isCurrentUser = message.sender === user;
+
+                            // Log the message.id to the console for debugging
+                            
+                            $("#messageContainer").append(`
+                                <div class="message ${isCurrentUser ? 'sent' : 'received'}">
+                                    <div class="message-avatar">
+                                        <img src="${message.photo_url}" class="user-avatar">
+                                    </div>
+                                    <div class="message-content">
+                                        <small class="shadow shadow-dark bg-dark text-white">${senderName}</small> | <span>${message.content}</span>
+                                        <div class="message-timestamp">${message.timestamp} ago</div>
+                                        
+                                        ${isCurrentUser ? '<button class="delete-message-btn" data-message-id="' + message.id + '"><i class="fas fa-trash"></i></button>' : ''}
+                                    </div>
+                                </div>
+                            `);
+                            // console.log(message.sender)
+                        }
+
+                        if (shouldScroll) {
+                            messageContainer.scrollTop(messageContainer.prop("scrollHeight"));
+                        }
+                    }
+                } else {
+                    console.error("Error in fetchMessages: " + data.message);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Error in fetchMessages:", error);
+            },
+            complete: function () {
+                // Schedule the next fetch after a delay (e.g., 1 second)
+                setTimeout(fetchMessages, 1000);
+            },
+        });
+    }
+
+    // Initial fetch of messages
+    fetchMessages();
+
+// Handle form submission with AJAX
+$('#messageForm').submit(function (event) {
+    event.preventDefault();
+    console.log("Form submitted!");
+    
+    var chatMessage = $('#message-input').val();
+
+    $.ajax({
+        url: "{% url 'chat_friend' friend_id=frnd.id %}",
+        type: "POST",
+        data: { chat: chatMessage, csrfmiddlewaretoken: "{{ csrf_token }}" },
+        dataType: "json",
+        success: function (data) {
+            console.log("AJAX success:", data);
+            if (data.success) {
+                $('#message-input').val('');
+                // Trigger a fetch of messages after submitting a new message
+                fetchMessages();
+            } else {
+                console.error("Error in form submission: " + data.message);
+            }
+        },
+        error: function (xhr, status, error) {
+            console.error("Error in form submission:", error);
+        },
+    });
+});
+
+// Ensure pressing Enter key triggers form submission
+$('#message-input').keypress(function (event) {
+    if (event.which === 13) {  // 13 is the Enter key code
+        console.log("Enter key pressed!");
+        $('#messageForm').submit();
+    }
+});
+
+
+// adding friends in realtime
+
+$(document).ready(function () {
+    $(".friendRequestBtn").on("submit", function (e) {
+        e.preventDefault();
+
+        const form = $(this);
+        const userId = form.data("user-id");
+        const responseDiv = $("#responseDiv");
+
+        $.ajax({
+            type: form.attr("method"),
+            url: form.attr("action"),
+            data: form.serialize(),
+            success: function (data) {
+                responseDiv.html(`<div class="alert alert-success">${data.message}</div>`);
+                    // Update the friend-status text
+                    const buttonText = data.pending ? 'Pending' : 'Add Friend';
+                    form.find('.friend-status').text(buttonText);
+                
+            },
+            error: function (error) {
+                console.error(error);
+            },
+        });
+    });
+});
+
+
+
+
+// Polling function to check for updates every 5 seconds
+
+function updateUnreadCount(friendId) {
+        console.log("Updating unread count for friend: " + friendId);
+        $.ajax({
+            url: '{% url "update_unread_messages" %}',
+            method: 'POST',
+            data: {
+                friend_id: friendId,
+                csrfmiddlewaretoken: '{{ csrf_token }}',
+            },
+            success: function (data) {
+                if (data.success) {
+                    // Update the badge count in your template
+                    $('#unread-count-' + friendId).text(data.unread_count);
+                } else {
+                    console.error('Failed to update unread count.');
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('AJAX request failed: ' + status + ', ' + error);
+            },
+        });
+    }
+
+    // Periodically poll for updates (adjust the interval as needed)
+    setInterval(function () {
+        {% for user, current_user_count in arr %}
+            {% if user != request.user %}
+                updateUnreadCount('{{ user.id }}');
+            {% endif %}
+        {% endfor %}
+    }, 5000);  // Poll every 5 seconds (adjust as needed)
+
+
+// mark message as unread message as read
+$(document).on('click', '.add-friend-btn', function(event) {
+    event.preventDefault();
+
+    var button = $(this);
+    var friendId = button.data('friend-id');
+    var markMessagesAsReadURL = "{% url 'mark_messages_as_read' %}";
+    var csrftoken = $("[name=csrfmiddlewaretoken]").val();
+
+    $.ajax({
+        url: markMessagesAsReadURL,
+        type: "POST",
+        data: { friend_id: friendId, csrfmiddlewaretoken: csrftoken },
+        dataType: "json",
+        success: function (data) {
+            if (data.success) {
+                // Update the UI to reflect that messages are now read
+                button.siblings('.badge-danger').text("0");
+
+                // Access the unread_count directly
+                var unreadCount = data.unread_count;
+
+                // Update the unread count for the clicked friend
+                var friendBadge = $(".add-friend-btn[data-friend-id='" + friendId + "']").siblings('.badge-danger');
+                friendBadge.text(unreadCount);
+
+                // Redirect the user to the friend's chat page
+                window.location.href = "{% url 'chat_friend' 0 %}".replace("0", friendId);
+            } else {
+                console.error("Error marking messages as read: " + data.message);
+            }
+        },
+        error: function (xhr, status, error) {
+            console.error("Error marking messages as read:", error);
+        }
+    });
+});
+
+
+
+
+// Handle delete button click
+$(document).on('click', '.delete-message-btn', function (event) {
+    event.preventDefault();
+
+    var button = $(this);
+    var messageId = button.data('message-id');
+    var deleteMessageURL = "{% url 'delete_message' %}";  // Replace with your actual URL
+    var csrftoken = $("[name=csrfmiddlewaretoken]").val();
+
+    $.ajax({
+        url: deleteMessageURL,
+        type: "POST",
+        data: { message_id: messageId, csrfmiddlewaretoken: csrftoken },
+        dataType: "json",
+        success: function (data) {
+            if (data.success) {
+                // Remove the deleted message from the UI
+                button.closest('.message').remove();
+            } else {
+                console.error("Error deleting message: " + data.message);
+            }
+        },
+        error: function (xhr, status, error) {
+            console.error("Error deleting message:", error);
+        }
+    });
+});
+
+
+   
+</script>

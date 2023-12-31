@@ -1,0 +1,11 @@
+
+<div class="d-flex justify-content-start mb-4">
+    <div class="img_cont_msg">
+        <img src="{{ message.sender.photo.url }}" class="rounded-circle user_img_msg">
+    </div>
+    <div class="msg_cotainer">
+        {{ message.content }}
+        <span class="msg_time">{{ message.timestamp|date:"g:i A, N d, Y" }}</span>
+    </div>
+</div>
+

@@ -1,0 +1,105 @@
+{% extends 'chat/base/base.html' %}
+{% load static %}
+
+
+{% block content %}
+
+{% include 'chat/base/private_chat_css.html' %}
+<div class="container-fluid h-100">
+    <div class="row justify-content-center h-100">
+        {% include 'chat/base/sidebar.html' %}
+        
+        
+        <div class="col-md-8 col-xl-6 chat">
+            <div class="card">
+                <div class="card-header msg_head">
+                    <div class="d-flex bd-highlight">
+                        <div class="img_cont">
+                            <img src="{{ frnd.photo.url }}" class="rounded-circle user_img">
+                            <span class="online_icon"></span>
+                        </div>
+                        <div class="user_info">
+                            <span>Chat with {{ frnd.username }}</span>
+                        </div>
+                        <div class="video_cam">
+                            <span><i class="fas fa-video"></i></span>
+                            <span><i class="fas fa-phone"></i></span>
+                        </div>
+                    </div>
+                    <span id="action_menu_btn"><i class="fas fa-ellipsis-v"></i></span>
+                    <div class="action_menu">
+                        <ul>
+                            <li><i class="fas fa-user-circle"></i> View profile</li>
+                            <li><i class="fas fa-users"></i> Add to close friends</li>
+                            <li><i class="fas fa-plus"></i> Add to group</li>
+                            <li><i class="fas fa-ban"></i> Block</li>
+                        </ul>
+                    </div>
+                </div>
+				<div class="card-body msg_card_body" id="messageContainer">
+                    <!-- the messages appears here -->
+                </div>
+				
+				
+                <div class="card-footer">
+                    <div id="chat-messages">
+                        <!-- Existing messages will be displayed here -->
+                    </div>
+                    <form id="messageForm" method="POST" action="{% url 'chat_friend' friend_id=frnd.id %}">
+                        {% csrf_token %}
+                        <div class="card-body msg_card_body" id="messageContainer">
+                            <!-- Existing messages will be displayed here -->
+                        </div>
+                        <div class="input-group">
+                            <div class="input-group-append">
+                                <label for="fileInput" class="input-group-text attach_btn">
+                                    <i class="fas fa-paperclip"></i>
+                                </label>
+                                <input type="file" name="attach" id="fileInput" style="display: none;">
+                            </div>
+                            
+                            <input type="text" id="message-input" name="chat" class="form-control type_msg" placeholder="Type your message..." required>
+                            <div class="input-group-append">
+                                <button type="submit" class="input-group-text send_btn"><i class="fas fa-location-arrow"></i></button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        var chatData = {
+            users: [
+                {% for users, current_user_count in arr %}
+                    {% if users != request.user %}
+                        {
+                            id: '{{ users.id }}',
+                            current_user_count: '{{ current_user_count }}'
+                        },
+                    {% endif %}
+                {% endfor %}
+            ]
+        };
+
+        // Pass relevant data to JavaScript
+        var user = "{{ user.username }}";
+        var fetchMessagesUrl = "{% url 'chat_friend' friend_id=frnd.id %}";
+        var updatemessageURL = "{% url 'update_unread_messages' %}";
+        var markMessagesAsReadURL = "{% url 'mark_messages_as_read' %}";
+        var deleteMessageURL = "{% url 'delete_message' %}";
+        var chatFriendJsPath = "{% static 'chat/js/chatfriend.js' %}";
+
+        // Include your external JavaScript file here
+        $.getScript(chatFriendJsPath, function() {
+            // Callback function after script is loaded (if needed)
+        });
+    </script> -->
+{% block js %}
+{% include 'chat/base/js_base.html' %}
+{% endblock %}
+
+{% endblock %}

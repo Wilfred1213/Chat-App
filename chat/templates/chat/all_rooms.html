@@ -1,0 +1,62 @@
+{% extends 'chat/base/base.html' %}
+
+{% block content %}
+
+
+    <div class="container">
+        <h1>Chat Rooms</h1>
+        <div class="search">
+            <input type="text" id='roomInput' placeholder="Search chat rooms...">
+            <button>Search</button>
+        </div>
+        <a href="{% url 'all_request' %}">view friend request</a>
+        <div class="chat-rooms">
+            <div class="chat-room text-white" style="background-color: #333; color: #fff;">
+                <a href="{% url 'create' %}" style="text-decoration: none; color: #fff;">
+                    <h2 style="color: #fff;">Create a New Room</h2>
+                </a>
+                <!-- You can add an action here to create a new room -->
+            </div>
+            {% for chat_room in rooms %}
+                <div class="chat-room">
+                    <a href="{% url 'room' chat_room.name %}" style="text-decoration: none; color: inherit;">
+                        <h2>{{ chat_room.name }}</h2>
+                    </a>
+                    <p>Members: {% for member in chat_room.members.all %}{{ member.username }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+                    <!-- Add more details or actions here -->
+                </div>
+            {% empty %}
+                <p class="no-chat-rooms">No chat rooms available.</p>
+            {% endfor %}
+        </div>
+    </div>
+    
+</body>
+</html>
+<script>
+    console.log("Sanity check from index.js.");
+
+// focus 'roomInput' when user opens the page
+document.querySelector("#roomInput").focus();
+
+// submit if the user presses the enter key
+document.querySelector("#roomInput").onkeyup = function(e) {
+    if (e.keyCode === 13) {  // enter key
+        document.querySelector("#roomConnect").click();
+    }
+};
+
+// redirect to '/room/<roomInput>/'
+document.querySelector("#roomConnect").onclick = function() {
+    let roomName = document.querySelector("#roomInput").value;
+    window.location.pathname = "chat/" + roomName + "/";
+}
+
+// redirect to '/room/<roomSelect>/'
+document.querySelector("#roomSelect").onchange = function() {
+    let roomName = document.querySelector("#roomSelect").value.split(" (")[0];
+    window.location.pathname = "chat/" + roomName + "/";
+}
+</script>
+
+{% endblock %}

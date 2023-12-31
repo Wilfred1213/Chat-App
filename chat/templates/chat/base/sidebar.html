@@ -1,0 +1,93 @@
+<div class="col-md-4 col-xl-3 chat">
+    {% include 'chat/base/logout_base.html' %}
+    <div class="card mb-sm-3 mb-md-0 contacts_card">
+        <div class="card-header">
+            
+            <div class="input-group">
+                <input type="text" placeholder="Search..." name="" class="form-control search">
+                <div class="input-group-prepend">
+                    <span class="input-group-text search_btn"><i class="fas fa-search"></i></span>
+                </div>
+            </div>
+        </div>
+        <div class="card-body contacts_body">
+            <ul class="contacts">
+
+                <li class="active">
+                    <div id="responseDiv"></div>
+                    <h4 class="bg-dark text-secondary lead">Your friends</h4>
+                    
+                {% for users, current_user_count in arr %}
+                    <div class="d-flex bd-highlight">
+                        <div class="img_cont">
+                            {% if users.is_online %}
+                                <img src="{{ users.photo.url }}" class="rounded-circle user_img">
+                                <span class="online_icon"></span>
+                            {% else %}
+                                <img src="{{ users.photo.url }}" class="rounded-circle user_img">
+                                <span class="offline_icon"></span>
+                            {% endif %}
+                        </div>
+                        <div class="user_info">
+                            <span>{{ users.username }}</span>
+                            {% if users.is_online %}
+                                <p> online </p>
+                            {% else %}
+                                <p> offline </p>
+                            {% endif %}
+                            <a href="{% url 'chat_friend' users.id %}" data-friend-id="{{ users.id }}" class="btn btn-primary add-friend-btn" data-mark-read-url="{% url 'mark_messages_as_read' %}">Chat Friend</a>
+
+                            {% if users != request.user %}
+                           
+                            <span class="badge badge-danger" id="unread-count-{{ users.id }}">{{ current_user_count }}</span>
+                            
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+                
+                </li>
+                <!-- all users -->
+                
+                <li class="active">
+                    <div id="responseDiv"></div>
+                    <h4 class="bg-dark text-secondary lead">Add new friends</h4>
+                        {% for user in all_users %}
+                        <div class="d-flex bd-highlight">
+                            <div class="img_cont">
+                                {% if user.is_online %}
+                                <img src="{{ user.photo.url }}" class="rounded-circle user_img">
+                                <span class="online_icon"></span>
+                                {% else %}
+                                <img src="{{ user.photo.url }}" class="rounded-circle user_img">
+                                <span class="offline_icon"></span>
+                                {% endif %}
+                            </div>
+                            <div class="user_info">
+                                <span>{{ user.username }}</span>
+                                {% if user.is_online %}
+                                    <p> online </p>
+                                {% else %}
+                                    <p> offline </p>
+                                {% endif %}
+                                
+                                <form method="post" action="{% if user.has_pending_request %}{% url 'accept_friend_request' user.friend_requests_received.first.id %}{% else %}{% url 'add_new_friend' user.id %}{% endif %}" class="friendRequestBtn" data-user-id="{{ user.id }}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary">
+                                        
+                                        <span class="friend-status">{% if user.has_pending_request %}Pending{% else %}Add Friend{% endif %}</span>
+                                        
+                                    </button>
+                                    
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    </li>
+                <!-- ends -->
+            
+            </ul>
+        </div>
+        <div class="card-footer"></div>
+    </div>
+</div>

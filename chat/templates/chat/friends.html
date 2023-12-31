@@ -1,0 +1,135 @@
+{% extends 'chat/base/base.html' %}
+
+{% block content %}
+
+<div class="container-fluid h-100">
+	<div class="row justify-content-center h-100">
+		<div class="col-md-4 col-xl-3 chat"><div class="card mb-sm-3 mb-md-0 contacts_card">
+			{% include 'chat/base/logout_base.html' %}
+			<div class="card-header">
+				<div class="input-group">
+					<input type="text" placeholder="Search..." name="" class="form-control search">
+					<div class="input-group-prepend">
+						<span class="input-group-text search_btn"><i class="fas fa-search"></i></span>
+					</div>
+				</div>
+			</div>
+			<div class="card-body contacts_body">
+				<ul class="contacts">
+					<!-- your firens -->
+					
+					<li class="active">
+						<div id="responseDiv"></div>
+						<h4 class="bg-dark text-secondary lead">Your friends</h4>
+						{% for friend in friends %}
+							{% for users in friend.related_friends.all %}
+								<div class="d-flex bd-highlight">
+									<div class="img_cont">
+                                        {% if users.is_online %}
+                                        <img src="{{ users.photo.url }}" class="rounded-circle user_img">
+                                        <span class="online_icon"></span>
+                                        {% else %}
+                                        <img src="{{ users.photo.url }}" class="rounded-circle user_img">
+                                        <span class="offline_icon"></span>
+                                        {% endif %}
+                                    </div>
+									<div class="user_info">
+										<span>{{ users.username }}</span>
+										{% if users.is_online %}
+											<p> online </p>
+										{% else %}
+											<p> offline </p>
+										{% endif %}
+
+										<a href="{% url 'chat_friend' users.id %}" class="btn btn-primary">Chat Friend</a>
+										
+										<span class="badge badge-danger">{{ user_count }}</span>
+            
+									</div>
+								</div>
+							{% endfor %}
+						{% endfor %}
+					</li>
+					<!-- end -->
+					<li class="active">
+						<div id="responseDiv"></div>
+						<h4 class="bg-dark text-secondary lead">Add new friends</h4>
+					
+						{% for user in all_users %}
+							
+								<div class="d-flex bd-highlight">
+									<div class="img_cont">
+                                        {% if user.is_online %}
+                                        <img src="{{ user.photo.url }}" class="rounded-circle user_img">
+                                        <span class="online_icon"></span>
+                                        {% else %}
+                                        <img src="{{ user.photo.url }}" class="rounded-circle user_img">
+                                        <span class="offline_icon"></span>
+                                        {% endif %}
+                                    </div>
+									<div class="user_info">
+										<span>{{ user.username }}</span>
+										{% if user.is_online %}
+											<p> online </p>
+										{% else %}
+											<p> offline </p>
+										{% endif %}
+										<form method="post" action="{% if user.has_pending_request %}{% url 'accept_friend_request' user.friend_requests_received.first.id %}{% else %}{% url 'add_new_friend' user.id %}{% endif %}" class="friendRequestBtn" data-user-id="{{ user.id }}">
+											{% csrf_token %}
+											<button type="submit" class="btn btn-primary">
+												
+                                                <span class="friend-status">{% if user.has_pending_request %}Pending{% else %}Add Friend{% endif %}</span>
+                                                
+                                            </button>
+                                            
+										</form>
+									</div>
+								</div>
+							
+						{% endfor %}
+					</li>
+					
+					
+				</ul>
+			</div>
+		</div>	
+			
+	</div>
+</div>
+
+
+<!-- Include jQuery library in your HTML -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+	// adding friends in realtime
+
+$(document).ready(function () {
+    $(".friendRequestBtn").on("submit", function (e) {
+        e.preventDefault();
+
+        const form = $(this);
+        const userId = form.data("user-id");
+        const responseDiv = $("#responseDiv");
+
+        $.ajax({
+            type: form.attr("method"),
+            url: form.attr("action"),
+            data: form.serialize(),
+            success: function (data) {
+                responseDiv.html(`<div class="alert alert-success">${data.message}</div>`);
+                    // Update the friend-status text
+                    const buttonText = data.pending ? 'Pending' : 'Add Friend';
+                    form.find('.friend-status').text(buttonText);
+                
+            },
+            error: function (error) {
+                console.error(error);
+            },
+        });
+    });
+});
+
+</script>
+
+
+{% endblock %}
